@@ -4,7 +4,7 @@ from abc import abstractmethod
 
 class Policy:
     @abstractmethod
-    def __init__(self, configs):
+    def __init__(self):
         pass
 
     @abstractmethod
@@ -13,7 +13,7 @@ class Policy:
 
 
 class RandomPolicy(Policy):
-    def __init__(self, configs):
+    def __init__(self):
         pass
 
     def get_action(self, observation, info):
@@ -32,8 +32,7 @@ class RandomPolicy(Policy):
                 pos_x, pos_y = None, None
                 for _ in range(100):
                     # random choice a stock
-                    stock_idx = random.randint(
-                        0, len(observation["stocks"]) - 1)
+                    stock_idx = random.randint(0, len(observation["stocks"]) - 1)
                     stock = observation["stocks"][stock_idx]
 
                     # Random choice a position
@@ -54,7 +53,7 @@ class RandomPolicy(Policy):
 
 
 class GreedyPolicy(Policy):
-    def __init__(self, configs):
+    def __init__(self):
         pass
 
     def get_action(self, observation, info):
