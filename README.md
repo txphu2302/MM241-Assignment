@@ -25,13 +25,13 @@ To implement your own policy, you need to create a new class that inherits from 
 You can start by creating a new file in the `student_submissions` directory and implementing your policy. Your code should be named `policy2210xxx.py` where `2210xxx` is your student ID. The policy class should be named `Policy2210xxx` where `2210xxx` is your student ID and inherit from the `Policy` class. If you are in honor class, you must implement reinforcement learning policy. Once you have implemented your policy, you can run uncomment the line in the `main.py` file that imports your policy and run the project to test your policy. You can only use basic python libraries such as numpy, pandas, torch, tensorflow, scikit-learn and scipy to implement your policy. Please put the new library in the `requirements.txt` file.  
 
 After you complete your policy, you need to submit your code as a pull request to the main repository. The pull request should include the following information:
-- Your student ID
+- Title: Your student ID
 - A brief description of your policy
 - The implementation of your policy
 - The results of your policy on the test data
 - Any additional information you would like to include
 
-If you have any questions or need help implementing your policy, please feel free to reach out to me.
+Any solutions that are not submitted as a pull request or do not follow the above guidelines will not be accepted. If you have any questions or need help implementing your policy, please post a message in the discussion forum.
 
 ## Contributing
 <!-- Describe how to contribute to the project -->
