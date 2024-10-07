@@ -1,6 +1,8 @@
 import random
 from abc import abstractmethod
 
+import numpy as np
+
 
 class Policy:
     @abstractmethod
@@ -10,6 +12,18 @@ class Policy:
     @abstractmethod
     def get_action(self, observation, info):
         pass
+
+    def _get_stock_size_(self, stock):
+        stock_w = np.sum(np.any(stock != -2, axis=1))
+        stock_h = np.sum(np.any(stock != -2, axis=0))
+
+        return stock_w, stock_h
+
+    def _can_place_(self, stock, position, prod_size):
+        pos_x, pos_y = position
+        prod_w, prod_h = prod_size
+
+        return np.all(stock[pos_x : pos_x + prod_w, pos_y : pos_y + prod_h] == -1)
 
 
 class RandomPolicy(Policy):
@@ -36,7 +50,7 @@ class RandomPolicy(Policy):
                     stock = observation["stocks"][stock_idx]
 
                     # Random choice a position
-                    stock_w, stock_h = stock.shape
+                    stock_w, stock_h = self._get_stock_size_(stock)
                     prod_w, prod_h = prod_size
 
                     if stock_w < prod_w or stock_h < prod_h:
@@ -44,6 +58,10 @@ class RandomPolicy(Policy):
 
                     pos_x = random.randint(0, stock_w - prod_w)
                     pos_y = random.randint(0, stock_h - prod_h)
+
+                    if not self._can_place_(stock, (pos_x, pos_y), prod_size):
+                        continue
+
                     break
 
                 if pos_x is not None and pos_y is not None:
@@ -70,7 +88,7 @@ class GreedyPolicy(Policy):
 
                 # Loop through all stocks
                 for i, stock in enumerate(observation["stocks"]):
-                    stock_w, stock_h = stock.shape
+                    stock_w, stock_h = self._get_stock_size_(stock)
                     prod_w, prod_h = prod_size
 
                     if stock_w < prod_w or stock_h < prod_h:
@@ -79,7 +97,7 @@ class GreedyPolicy(Policy):
                     pos_x, pos_y = None, None
                     for x in range(stock_w - prod_w + 1):
                         for y in range(stock_h - prod_h + 1):
-                            if self.__can_place(stock, (x, y), prod_size):
+                            if self._can_place_(stock, (x, y), prod_size):
                                 pos_x, pos_y = x, y
                                 break
                         if pos_x is not None and pos_y is not None:
@@ -93,14 +111,3 @@ class GreedyPolicy(Policy):
                     break
 
         return {"stock_idx": stock_idx, "size": prod_size, "position": (pos_x, pos_y)}
-
-    def __can_place(self, stock, position, prod_size):
-        pos_x, pos_y = position
-        prod_w, prod_h = prod_size
-
-        for x in range(prod_w):
-            for y in range(prod_h):
-                if stock[pos_x + x][pos_y + y] != 0:
-                    return False
-
-        return True
