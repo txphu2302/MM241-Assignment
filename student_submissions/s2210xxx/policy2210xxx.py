@@ -24,7 +24,7 @@ class Policy2210xxx(Policy):
         for prod in self.sorted_prods:
             prod_width, prod_height = prod[1]["size"]
             placed = False
-            x, y = -1, -1  # Initialize x and y
+            x, y = 0, 0  # Initialize x and y
             if prod[1]["quantity"] > 0:
                 for i, stock in enumerate(observation["stocks"]):
                     stock_w, stock_h = self._get_stock_size_(stock)
