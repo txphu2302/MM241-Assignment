@@ -15,8 +15,8 @@ class Policy2210xxx(Policy):
             self.alpha = 0.1   # Learning rate
             self.gamma = 0.9   # Discount factor
             self.epsilon = 0.1 # Exploration rate
-            self.epsilon_min = 0.01
-            self.epsilon_decay = 0.99
+            self.epsilon_min = 0.01 # Minimum exploration rate
+            self.epsilon_decay = 0.99 
             self.current_index_filled = 0  # Stores the current filled stock
     def get_action(self, observation, info): 
         if self.policy_id == 1:
@@ -161,8 +161,7 @@ class Policy2210xxx(Policy):
         used_area = w * h
         stock_w, stock_h = self._get_stock_size_(stock)
         total_area = stock_w * stock_h
-        trim_loss = 1 - (used_area / total_area)
-        reward = (used_area / total_area) - 0.1 * trim_loss
+        reward = (used_area / total_area) 
 
         return reward # Reward based on area utilization 
 
