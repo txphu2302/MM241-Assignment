@@ -15,8 +15,10 @@ class Policy2210xxx(Policy):
             self.alpha = 0.1   # Learning rate
             self.gamma = 0.9   # Discount factor
             self.epsilon = 0.1 # Exploration rate
+            self.epsilon_min = 0.01
+            self.epsilon_decay = 0.99
             self.current_index_filled = 0  # Stores the current filled stock
-    def get_action(self, observation, info):
+    def get_action(self, observation, info): 
         if self.policy_id == 1:
             # Policy 1: Sort products and place them
             if not self.sorted_prods:
@@ -54,10 +56,12 @@ class Policy2210xxx(Policy):
             if stock_idx >= len(observation["stocks"]):
                 return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
                 
-            current_stock = observation["stocks"][stock_idx]
-            state = self._get_state(current_stock, observation["products"])
-            possible_actions = self._get_possible_actions(state, current_stock, observation["products"])
+            current_stock = observation["stocks"][stock_idx] # trả về mảng stock thứ stock_idx
+            current_product = observation["products"] # lấy ra products để dễ sử dụng
+            state = self._get_state(current_stock, current_product)  # lấy thông tin của state từ current stock và product để nhập vào q_table
+            possible_actions = self._get_possible_actions(state, current_stock, current_product) # trả về các product có thể bỏ vào stock
             
+            # Không có action nào thì sang stock kế tiếp
             if not possible_actions:
                 self.current_index_filled += 1
                 return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
@@ -76,19 +80,35 @@ class Policy2210xxx(Policy):
 
             # Q-learning update
             reward = self._get_reward(action, current_stock)
-            next_state = self._get_state(current_stock, observation["products"])
-            
+            next_state = self._get_state(current_stock, current_product)
+
             if state not in self.q_table:
                 self.q_table[state] = {}
             if str(action) not in self.q_table[state]:
-                self.q_table[state][str(action)] = 0
-                
-            # Q-value update
+                self.q_table[state][str(action)] = 0 
+
+            '''ON-POLICY'''
+            # Chọn hành động tại trạng thái tiếp theo dựa trên epsilon-greedy (policy hiện tại)
+            if random.random() < self.epsilon:
+                next_action = random.choice(possible_actions)
+            else:
+                if next_state not in self.q_table:
+                    self.q_table[next_state] = {str(a): 0 for a in possible_actions}
+                next_action = max(possible_actions, key=lambda a: self.q_table[next_state].get(str(a), 0))
+           
+            if next_state not in self.q_table:
+                self.q_table[next_state] = {}
+            if str(next_action) not in self.q_table[state]:
+                self.q_table[next_state][str(next_action)] = 0 
+
+            # Cập nhật Q-value
+            next_value = self.q_table[next_state].get(str(next_action), 0)
             old_value = self.q_table[state][str(action)]
-            next_max = max(self.q_table.get(next_state, {0: 0}).values())
-            new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * next_max)
+            new_value = (1 - self.alpha) * old_value + self.alpha * (reward + self.gamma * next_value)
             self.q_table[state][str(action)] = new_value
 
+            # Cập nhật lại epsilon
+            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
             return {
                 "stock_idx": stock_idx,
                 "size": action["size"],
@@ -98,8 +118,8 @@ class Policy2210xxx(Policy):
     def _get_state(self, stock, products):
         """Convert current stock and products to state representation"""
         # Convert stock dimensions to integers/tuples
-        stock_w, stock_h = map(int, self._get_stock_size_(stock))
-        
+        #stock_w, stock_h = map(int, self._get_stock_size_(stock))
+        stock_w, stock_h = self._get_stock_size_(stock)
         # Convert remaining products to hashable format
         remaining_products = tuple(
             (tuple(map(int, p["size"])), p["quantity"]) 
@@ -112,7 +132,7 @@ class Policy2210xxx(Policy):
     
     def _get_possible_actions(self, state, stock, products):
         """Get all valid placements for current state"""
-        stock_w, stock_h = state[0], state[1]
+        stock_w, stock_h = state[0], state[1] # state = (4, 5, ((4, 5), 2))
         actions = []
         
         for p_idx, product in enumerate(products):
@@ -141,4 +161,8 @@ class Policy2210xxx(Policy):
         used_area = w * h
         stock_w, stock_h = self._get_stock_size_(stock)
         total_area = stock_w * stock_h
-        return used_area / total_area  # Reward based on area utilization
+        trim_loss = 1 - (used_area / total_area)
+        reward = (used_area / total_area) - 0.1 * trim_loss
+
+        return reward # Reward based on area utilization 
+

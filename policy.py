@@ -14,10 +14,10 @@ class Policy:
         pass
 
     def _get_stock_size_(self, stock):
-        stock_w = np.sum(np.any(stock != -2, axis=1))
-        stock_h = np.sum(np.any(stock != -2, axis=0))
+        stock_w = np.sum(np.any(stock != -2, axis=1)) # tổng số hàng khả dụng 
+        stock_h = np.sum(np.any(stock != -2, axis=0)) # tổng số cột khả dụng
 
-        return stock_w, stock_h
+        return stock_w, stock_h # trả về tổng số hàng và số cột khả dụng
 
     def _can_place_(self, stock, position, prod_size):
         pos_x, pos_y = position
