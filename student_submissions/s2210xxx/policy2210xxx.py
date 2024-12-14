@@ -1,7 +1,6 @@
 from policy import Policy
 import numpy as np
 import random
-
 import sys
 
 class Policy2210xxx(Policy):
@@ -20,9 +19,7 @@ class Policy2210xxx(Policy):
             self.current_index_filled = 0  # Stores the current filled stock
     def get_action(self, observation, info):
         if self.policy_id == 1:
-            # Sort stocks by usable space
-            sorted_stocks = sorted(enumerate(observation["stocks"]), key=lambda x: self._get_stock_size_(x[1])[0] * self._get_stock_size_(x[1])[1], reverse=True)
-            
+            # Policy 1: Sort products and place them
             if not self.sorted_prods:
                 self.list_prods = observation["products"]
                 for prod in self.list_prods:
@@ -33,39 +30,25 @@ class Policy2210xxx(Policy):
                 
                 # Sort products by area initially
                 self.sorted_prods.sort(key=lambda x: x[0], reverse=True)
-            
             if all(prod[2] == 0 for prod in self.sorted_prods):
                 sys.exit("All products have quantity 0. Stopping the program.")
 
-            for stock_idx, stock in sorted_stocks:
+            for i, stock in enumerate(observation["stocks"]):
                 stock_w, stock_h = self._get_stock_size_(stock)
-                
-                # Dynamically sort products based on stock dimensions
-                self.sorted_prods.sort(key=lambda p: (p[0], -abs(stock_w - p[1]["size"][0]) * abs(stock_h - p[1]["size"][1])), reverse=True)
-                
+                if i < self.current_index_filled:
+                    continue
+                self.current_index_filled = i
                 for prod in self.sorted_prods:
-                    if prod[2] > 0:
-                        best_placement = None
-                        min_wasted_space = float("inf")
-                        for (w, h) in [(prod[1]["size"][0], prod[1]["size"][1]), (prod[1]["size"][1], prod[1]["size"][0])]:
+                    prod_width, prod_height = prod[1]["size"]
+                    x, y = 0, 0  # Initialize x and y
+                    if prod[1]["quantity"] > 0:
+                        for (w, h) in [(prod_width, prod_height), (prod_height, prod_width)]:
                             for x in range(stock_w - w + 1):
                                 for y in range(stock_h - h + 1):
                                     if self._can_place_(stock, (x, y), (w, h)):
-                                        remaining_width = stock_w - (x + w)
-                                        remaining_height = stock_h - (y + h)
-                                        wasted_area = remaining_width * remaining_height
-                                        alignment_score = abs(stock_w - (x + w)) + abs(stock_h - (y + h))
-                                        score = wasted_area + alignment_score  # Combined heuristic
-                                        
-                                        if score < min_wasted_space:
-                                            min_wasted_space = score
-                                            best_placement = {"stock_idx": stock_idx, "size": (w, h), "position": (x, y)}
-                            
-                        if best_placement:
-                            prod[2] -= 1
-                            return best_placement
+                                        return {"stock_idx": i, "size": (w, h), "position": (x, y)}
+                self.current_index_filled += 1
             return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
-
         elif self.policy_id == 2:
             # Policy 2: Reinforcement Learning Q-Learning
             stock_idx = self.current_index_filled
