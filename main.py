@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
     # Uncomment the following code to test your policy
     # Reset the environment
-    observation, info = env.reset(seed=42)
+    observation, info = env.reset(seed=8386)
     print(info)
 
     policy2210xxx = Policy2210xxx(policy_id=1)

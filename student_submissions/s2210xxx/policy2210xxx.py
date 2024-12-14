@@ -2,6 +2,8 @@ from policy import Policy
 import numpy as np
 import random
 
+import sys
+
 class Policy2210xxx(Policy):
     def __init__(self, policy_id=1):
         assert policy_id in [1, 2], "Policy ID must be 1 or 2"
@@ -18,36 +20,52 @@ class Policy2210xxx(Policy):
             self.current_index_filled = 0  # Stores the current filled stock
     def get_action(self, observation, info):
         if self.policy_id == 1:
-            # Policy 1: Sort products and place them
+            # Sort stocks by usable space
+            sorted_stocks = sorted(enumerate(observation["stocks"]), key=lambda x: self._get_stock_size_(x[1])[0] * self._get_stock_size_(x[1])[1], reverse=True)
+            
             if not self.sorted_prods:
                 self.list_prods = observation["products"]
- 
                 for prod in self.list_prods:
                     prod_size = prod["size"]
-                    prod_w, prod_h = prod_size
-                    prod_area = prod_w * prod_h
-                    self.sorted_prods.append((prod_area, prod))
-
-                # Sort products by area in descending order
+                    prod_area = prod_size[0] * prod_size[1]
+                    quantity = prod["quantity"]
+                    self.sorted_prods.append([prod_area, prod, quantity])  # Include quantity
+                
+                # Sort products by area initially
                 self.sorted_prods.sort(key=lambda x: x[0], reverse=True)
-        
             
-            for i, stock in enumerate(observation["stocks"]):
+            if all(prod[2] == 0 for prod in self.sorted_prods):
+                sys.exit("All products have quantity 0. Stopping the program.")
+
+            for stock_idx, stock in sorted_stocks:
                 stock_w, stock_h = self._get_stock_size_(stock)
-                if i < self.current_index_filled:
-                    continue
-                self.current_index_filled = i
+                
+                # Dynamically sort products based on stock dimensions
+                self.sorted_prods.sort(key=lambda p: (p[0], -abs(stock_w - p[1]["size"][0]) * abs(stock_h - p[1]["size"][1])), reverse=True)
+                
                 for prod in self.sorted_prods:
-                    prod_width, prod_height = prod[1]["size"]
-                    x, y = 0, 0  # Initialize x and y
-                    if prod[1]["quantity"] > 0:
-                        for (w, h) in [(prod_width, prod_height), (prod_height, prod_width)]:
+                    if prod[2] > 0:
+                        best_placement = None
+                        min_wasted_space = float("inf")
+                        for (w, h) in [(prod[1]["size"][0], prod[1]["size"][1]), (prod[1]["size"][1], prod[1]["size"][0])]:
                             for x in range(stock_w - w + 1):
                                 for y in range(stock_h - h + 1):
                                     if self._can_place_(stock, (x, y), (w, h)):
-                                        return {"stock_idx": i, "size": (w, h), "position": (x, y)}
-                self.current_index_filled += 1
+                                        remaining_width = stock_w - (x + w)
+                                        remaining_height = stock_h - (y + h)
+                                        wasted_area = remaining_width * remaining_height
+                                        alignment_score = abs(stock_w - (x + w)) + abs(stock_h - (y + h))
+                                        score = wasted_area + alignment_score  # Combined heuristic
+                                        
+                                        if score < min_wasted_space:
+                                            min_wasted_space = score
+                                            best_placement = {"stock_idx": stock_idx, "size": (w, h), "position": (x, y)}
+                            
+                        if best_placement:
+                            prod[2] -= 1
+                            return best_placement
             return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
+
         elif self.policy_id == 2:
             # Policy 2: Reinforcement Learning Q-Learning
             stock_idx = self.current_index_filled
