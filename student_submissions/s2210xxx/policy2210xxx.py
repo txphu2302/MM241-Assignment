@@ -19,6 +19,7 @@ class Policy2210xxx(Policy):
             self.epsilon_min = 0.01 # Minimum exploration rate
             self.epsilon_decay = 0.99 
             self.current_index_filled = 0  # Stores the current filled stock
+            self.flag_exit = False
     def get_action(self, observation, info):
         if self.policy_id == 1:
             # Policy 1: Sort products and place them
@@ -48,15 +49,17 @@ class Policy2210xxx(Policy):
                             for x in range(stock_w - w + 1):
                                 for y in range(stock_h - h + 1):
                                     if self._can_place_(stock, (x, y), (w, h)):
+                                        prod[2] -= 1
                                         return {"stock_idx": i, "size": (w, h), "position": (x, y)}
                 self.current_index_filled += 1
             return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
         elif self.policy_id == 2:
             # Policy 2: Reinforcement Learning Q-Learning
             stock_idx = self.current_index_filled
+            if self.flag_exit:
+                sys.exit("All products have quantity 0. Stopping the program.")
             if stock_idx >= len(observation["stocks"]):
                 return {"stock_idx": -1, "size": (0, 0), "position": (0, 0)}
-                
             current_stock = observation["stocks"][stock_idx] # trả về mảng stock thứ stock_idx
             current_product = observation["products"] # lấy ra products để dễ sử dụng
             state = self._get_state(current_stock, current_product)  # lấy thông tin của state từ current stock và product để nhập vào q_table
@@ -110,6 +113,10 @@ class Policy2210xxx(Policy):
 
             # Cập nhật lại epsilon
             self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+            # Kiểm tra xem nếu hết quantity tất cả các product thì dừng
+            # Loop qua tất cả product, nếu tổng quantity các product = 1 thì dừng
+            if sum(prod["quantity"] for prod in current_product) == 1:
+                self.flag_exit = True
             return {
                 "stock_idx": stock_idx,
                 "size": action["size"],
